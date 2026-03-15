@@ -348,14 +348,14 @@ a:hover { color: var(--primary-dark); }
 .card.reserved .wa-btn { display: none; }
 .card.reserved .reserve-btn { display: none; }
 
-/* Reserve & Waitlist buttons */
-.reserve-btn {
+/* Interest button */
+.interest-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 10px;
   padding: 9px 14px;
-  background: var(--warning);
+  background: var(--primary);
   color: #fff;
   border: none;
   border-radius: 20px;
@@ -367,31 +367,16 @@ a:hover { color: var(--primary-dark); }
   width: 100%;
   justify-content: center;
 }
-.reserve-btn:hover { background: #d99565; transform: scale(1.02); }
-.waitlist-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-  padding: 9px 14px;
-  background: #a0785c;
-  color: #fff;
-  border: none;
-  border-radius: 20px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 700;
-  font-family: var(--font-main);
-  transition: all 0.2s;
-  width: 100%;
-  justify-content: center;
-}
-.waitlist-btn:hover { background: #8b6750; transform: scale(1.02); }
-.waitlist-info {
+.interest-btn:hover { background: var(--primary-dark); transform: scale(1.02); }
+.interest-btn:disabled { background: var(--success); cursor: default; transform: none; }
+.card.sold .interest-btn { display: none; }
+.card.reserved .interest-btn { display: none; }
+
+/* Card counts */
+.card-counts {
   font-size: 0.78rem;
   color: var(--text-light);
-  text-align: center;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 .card-dates {
   font-size: 0.75rem;
@@ -718,7 +703,10 @@ async function renderPublic() {
   const data = await api('/api/items');
   const title = escHtml(data.settings.saleTitle || "Kuki's Garage Sale");
   const items = data.items;
-  const reservations = data.reservations || {};
+  const visits = data.visits || 0;
+
+  // Track page visit
+  api('/api/visit', { method: 'POST' });
 
   app.innerHTML = `
     ${generatePawBg()}
@@ -743,11 +731,15 @@ async function renderPublic() {
         <div class="kuki-sig">— Kuki, Chief Decluttering Officer 🐾</div>
       </div>
       <div class="public-stats">
+        <div class="public-stat"><strong>${visits}</strong> visits</div>
+        <div class="public-stat-dot"></div>
+        <div class="public-stat"><strong>${items.reduce((s, i) => s + (i.interestCount || 0), 0)}</strong> interests</div>
+        <div class="public-stat-dot"></div>
         <div class="public-stat"><strong>${items.filter(i => i.sold).length}</strong> items handed over</div>
         <div class="public-stat-dot"></div>
         <div class="public-stat" title="Estimated based on average manufacturing emissions avoided per category (sources: WRAP UK, Eupedia, MIT LCA studies)"><strong>~${formatCO2(estimateCO2(items))}</strong> CO₂ saved</div>
         <div class="public-stat-dot"></div>
-        <div class="public-stat"><strong>${items.filter(i => !i.sold).length}</strong> items still looking for a new home</div>
+        <div class="public-stat"><strong>${items.filter(i => !i.sold).length}</strong> looking for a new home</div>
       </div>
       <div class="toolbar">
         <input type="text" class="search-input" id="searchInput" placeholder="Search items...">
@@ -795,33 +787,14 @@ async function renderPublic() {
         ? `<img class="card-img" src="${escHtml(item.imageUrl)}" alt="${escHtml(item.name)}" onerror="this.outerHTML='<div class=\\'card-img-placeholder\\'>📷</div>'">`
         : '<div class="card-img-placeholder">📷</div>';
       const soldHtml = item.sold ? '<div class="sold-overlay"><span>SOLD</span></div>' : '';
-      const reservation = reservations[item.id];
-      const isReserved = !item.sold && reservation;
-      const reservedHtml = isReserved
-        ? `<div class="reserved-overlay"><span>RESERVED</span><div class="timer" data-expires="${reservation.expiresAt}" data-item-id="${item.id}"></div></div>`
-        : '';
-      const waNum = data.settings.whatsappNumber || '';
-      const waText = encodeURIComponent(`Hi, I'm interested in ${item.name}`);
-      const waHref = waNum ? `https://wa.me/${waNum}?text=${waText}` : '#';
-      const waitlistCount = isReserved && reservation.waitlist ? reservation.waitlist.length : 0;
+      const reservedHtml = !item.sold && item.reserved ? '<div class="reserved-overlay"><span>RESERVED</span></div>' : '';
 
-      let actionButtons = '';
-      if (!item.sold) {
-        if (!isReserved) {
-          actionButtons = `
-            <a class="wa-btn" href="${waHref}" target="_blank" rel="noopener">💬 Chat on WhatsApp</a>
-            <button class="reserve-btn" data-item-id="${item.id}" data-item-name="${escHtml(item.name)}">🔒 Reserve (20 min)</button>
-          `;
-        } else {
-          actionButtons = `
-            <button class="waitlist-btn" data-item-id="${item.id}" data-item-name="${escHtml(item.name)}">📋 Join Waiting List</button>
-            ${waitlistCount > 0 ? `<div class="waitlist-info">${waitlistCount} person${waitlistCount > 1 ? 's' : ''} waiting</div>` : ''}
-          `;
-        }
-      }
+      const interestBtn = !item.sold && !item.reserved
+        ? `<button class="interest-btn" data-item-id="${item.id}">🐾 I'm interested!</button>`
+        : '';
 
       return `
-        <div class="card${item.sold ? ' sold' : ''}${isReserved ? ' reserved' : ''}">
+        <div class="card${item.sold ? ' sold' : ''}${item.reserved ? ' reserved' : ''}">
           ${soldHtml}
           ${reservedHtml}
           ${imgHtml}
@@ -832,16 +805,17 @@ async function renderPublic() {
               <span class="badge">${escHtml(item.category)}</span>
               <span class="badge condition">${escHtml(item.condition)}</span>
             </div>
+            <div class="card-counts">
+              👀 ${item.viewCount || 0} views · 🐾 ${item.interestCount || 0} interested
+            </div>
             <div class="card-dates">
               Listed ${formatDate(item.createdAt)}${item.updatedAt && item.updatedAt !== item.createdAt ? ' · Updated ' + formatDate(item.updatedAt) : ''}
             </div>
-            ${actionButtons}
+            ${interestBtn}
           </div>
         </div>
       `;
     }).join('');
-
-    startTimers();
   }
 
   // Category filter
@@ -860,53 +834,19 @@ async function renderPublic() {
     renderItems();
   });
 
-  // Reserve & Waitlist
+  // Interest button
   document.getElementById('itemGrid').addEventListener('click', async e => {
-    const reserveBtn = e.target.closest('.reserve-btn');
-    if (reserveBtn) {
-      const itemId = reserveBtn.dataset.itemId;
-      const itemName = reserveBtn.dataset.itemName;
-      const name = prompt(`Reserve "${itemName}"?\nEnter your name:`);
-      if (name && name.trim()) {
-        const res = await api(`/api/reserve/${itemId}`, { method: 'POST', body: { name: name.trim() } });
-        if (res.error) { alert(res.error); }
-        await render();
-      }
-      return;
-    }
-    const waitlistBtn = e.target.closest('.waitlist-btn');
-    if (waitlistBtn) {
-      const itemId = waitlistBtn.dataset.itemId;
-      const itemName = waitlistBtn.dataset.itemName;
-      const name = prompt(`"${itemName}" is currently reserved.\nEnter your name to join the waiting list:`);
-      if (name && name.trim()) {
-        await api(`/api/waitlist/${itemId}`, { method: 'POST', body: { name: name.trim() } });
-        await render();
-      }
-    }
+    const btn = e.target.closest('.interest-btn');
+    if (!btn) return;
+    const itemId = btn.dataset.itemId;
+    btn.disabled = true;
+    btn.textContent = '🐾 Thanks!';
+    await api(`/api/interest/${itemId}`, { method: 'POST' });
+    // Update count in place
+    const item = items.find(i => i.id === itemId);
+    if (item) item.interestCount = (item.interestCount || 0) + 1;
+    renderItems();
   });
-
-  // Timer
-  let timerInterval = null;
-  function startTimers() {
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-      const timers = document.querySelectorAll('.timer[data-expires]');
-      if (timers.length === 0) { clearInterval(timerInterval); return; }
-      const now = Date.now();
-      let needsRerender = false;
-      timers.forEach(el => {
-        const expires = Number(el.dataset.expires);
-        const left = expires - now;
-        if (left <= 0) {
-          needsRerender = true;
-        } else {
-          el.textContent = formatTimeLeft(left) + ' left';
-        }
-      });
-      if (needsRerender) render();
-    }, 1000);
-  }
 
   renderItems();
 }
@@ -989,7 +929,6 @@ function renderPasswordGate() {
 async function renderAdminDashboard() {
   const data = await api('/api/admin/items');
   const items = data.items;
-  const reservations = data.reservations || {};
   const totalItems = items.length;
   const soldCount = items.filter(i => i.sold).length;
   const revenue = items.filter(i => i.sold).reduce((s, i) => s + Number(i.price), 0);
@@ -1005,6 +944,8 @@ async function renderAdminDashboard() {
       <a href="#/" class="back-link">← Back to store</a>
 
       <div class="stats">
+        <div class="stat-card"><div class="num">${data.visits || 0}</div><div class="label">Page Visits</div></div>
+        <div class="stat-card"><div class="num">${items.reduce((s, i) => s + (i.interestCount || 0), 0)}</div><div class="label">Total Interests</div></div>
         <div class="stat-card"><div class="num">${totalItems}</div><div class="label">Total Items</div></div>
         <div class="stat-card"><div class="num">${soldCount}</div><div class="label">Sold</div></div>
         <div class="stat-card"><div class="num">${formatPrice(revenue)}</div><div class="label">Revenue</div></div>
@@ -1053,6 +994,13 @@ async function renderAdminDashboard() {
               <span id="fSoldLabel">${editing && editing.sold ? 'Yes' : 'No'}</span>
             </div>
           </div>
+          <div class="form-group">
+            <label>Reserved</label>
+            <div class="toggle-wrap">
+              <div class="toggle${editing && editing.reserved ? ' on' : ''}" id="fReserved"></div>
+              <span id="fReservedLabel">${editing && editing.reserved ? 'Yes' : 'No'}</span>
+            </div>
+          </div>
         </div>
         <div class="form-actions">
           <button class="btn btn-primary" id="saveItemBtn">${editing ? 'Update Item' : 'Add Item'}</button>
@@ -1064,22 +1012,22 @@ async function renderAdminDashboard() {
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th></th><th>Name</th><th>Price</th><th>Category</th><th>Condition</th><th>Status</th><th>Actions</th></tr>
+            <tr><th></th><th>Name</th><th>Price</th><th>Category</th><th>Status</th><th>👀</th><th>🐾</th><th>Actions</th></tr>
           </thead>
           <tbody id="itemsTableBody">
-            ${items.length === 0 ? '<tr><td colspan="7" style="text-align:center;color:var(--text-light)">No items yet</td></tr>' : items.map(item => {
-              const res = reservations[item.id];
+            ${items.length === 0 ? '<tr><td colspan="8" style="text-align:center;color:var(--text-light)">No items yet</td></tr>' : items.map(item => {
               const statusHtml = item.sold
                 ? '<span style="color:var(--danger);font-weight:600">Sold</span>'
-                : (res ? '<span style="color:var(--warning);font-weight:600">Reserved (' + escHtml(res.reservedBy) + ')</span>' : '<span style="color:var(--success)">Available</span>');
+                : (item.reserved ? '<span style="color:var(--warning);font-weight:600">Reserved</span>' : '<span style="color:var(--success)">Available</span>');
               return `
               <tr>
                 <td>${item.imageUrl ? `<img src="${escHtml(item.imageUrl)}" alt="">` : '📷'}</td>
                 <td>${escHtml(item.name)}</td>
                 <td>${formatPrice(item.price)}</td>
                 <td>${escHtml(item.category)}</td>
-                <td>${escHtml(item.condition)}</td>
                 <td>${statusHtml}</td>
+                <td>${item.viewCount || 0}</td>
+                <td>${item.interestCount || 0}</td>
                 <td class="actions">
                   <button class="btn btn-secondary btn-sm edit-btn" data-id="${item.id}">Edit</button>
                   <button class="btn btn-danger btn-sm del-btn" data-id="${item.id}">Delete</button>
@@ -1135,6 +1083,13 @@ async function renderAdminDashboard() {
     document.getElementById('fSoldLabel').textContent = soldToggle.classList.contains('on') ? 'Yes' : 'No';
   });
 
+  // Reserved toggle
+  const reservedToggle = document.getElementById('fReserved');
+  reservedToggle.addEventListener('click', () => {
+    reservedToggle.classList.toggle('on');
+    document.getElementById('fReservedLabel').textContent = reservedToggle.classList.contains('on') ? 'Yes' : 'No';
+  });
+
   // Save item
   document.getElementById('saveItemBtn').addEventListener('click', async () => {
     const name = document.getElementById('fName').value.trim();
@@ -1144,6 +1099,7 @@ async function renderAdminDashboard() {
     const description = document.getElementById('fDesc').value.trim();
     let imageUrl = document.getElementById('fImage').value.trim();
     const sold = document.getElementById('fSold').classList.contains('on');
+    const reserved = document.getElementById('fReserved').classList.contains('on');
     const imageFile = document.getElementById('fImageFile').files[0];
 
     if (!name) { alert('Please enter an item name'); return; }
@@ -1158,7 +1114,7 @@ async function renderAdminDashboard() {
       imageUrl = uploadData.url;
     }
 
-    const body = { name, price, category, condition, description, imageUrl, sold };
+    const body = { name, price, category, condition, description, imageUrl, sold, reserved };
 
     if (editingItemId) {
       await api(`/api/admin/items/${editingItemId}`, { method: 'PUT', body });

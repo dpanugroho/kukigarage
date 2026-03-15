@@ -30,12 +30,25 @@ db.run(`CREATE TABLE IF NOT EXISTS items (
   condition TEXT DEFAULT 'Good',
   imageUrl TEXT DEFAULT '',
   sold INTEGER DEFAULT 0,
+  reserved INTEGER DEFAULT 0,
+  interestCount INTEGER DEFAULT 0,
+  viewCount INTEGER DEFAULT 0,
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 )`);
 
-// Migration: add updatedAt if missing (for DBs created before this column existed)
+// Migrations for existing DBs
 try { db.run("ALTER TABLE items ADD COLUMN updatedAt TEXT DEFAULT (datetime('now'))"); } catch {}
+try { db.run("ALTER TABLE items ADD COLUMN reserved INTEGER DEFAULT 0"); } catch {}
+try { db.run("ALTER TABLE items ADD COLUMN interestCount INTEGER DEFAULT 0"); } catch {}
+try { db.run("ALTER TABLE items ADD COLUMN viewCount INTEGER DEFAULT 0"); } catch {}
+
+// Page visit counter
+db.run(`CREATE TABLE IF NOT EXISTS page_visits (
+  id INTEGER PRIMARY KEY,
+  count INTEGER DEFAULT 0
+)`);
+try { db.run("INSERT INTO page_visits (id, count) VALUES (1, 0)"); } catch {}
 
 db.run(`CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
@@ -123,51 +136,35 @@ function cleanReservations() {
 
 // Get all items + settings (public)
 app.get("/api/items", (c) => {
-  cleanReservations();
   const items = db.query("SELECT * FROM items ORDER BY createdAt DESC").all() as any[];
-  const reservations = db.query("SELECT * FROM reservations").all() as any[];
-  const resMap: Record<string, any> = {};
-  for (const r of reservations) {
-    resMap[r.itemId] = { reservedBy: r.reservedBy, expiresAt: r.expiresAt, waitlist: JSON.parse(r.waitlist || "[]") };
-  }
+  const visits = db.query("SELECT count FROM page_visits WHERE id = 1").get() as any;
   return c.json({
-    items: items.map((i) => ({ ...i, sold: !!i.sold })),
+    items: items.map((i) => ({ ...i, sold: !!i.sold, reserved: !!i.reserved })),
     settings: getAllSettings(),
-    reservations: resMap,
+    visits: visits?.count || 0,
   });
 });
 
-// Reserve an item
-app.post("/api/reserve/:id", async (c) => {
-  cleanReservations();
+// Express interest in an item
+app.post("/api/interest/:id", (c) => {
   const id = c.req.param("id");
-  const { name } = await c.req.json();
-  if (!name) return c.json({ error: "Name required" }, 400);
+  db.run("UPDATE items SET interestCount = interestCount + 1 WHERE id = ?", [id]);
+  const item = db.query("SELECT interestCount FROM items WHERE id = ?").get(id) as any;
+  return c.json({ ok: true, interestCount: item?.interestCount || 0 });
+});
 
-  const existing = db.query("SELECT * FROM reservations WHERE itemId = ?").get(id) as any;
-  if (existing) {
-    return c.json({ error: "Already reserved" }, 409);
-  }
-  db.run("INSERT INTO reservations (itemId, reservedBy, expiresAt, waitlist) VALUES (?, ?, ?, '[]')", [
-    id, name, Date.now() + 20 * 60 * 1000,
-  ]);
+// Track item view
+app.post("/api/view/:id", (c) => {
+  const id = c.req.param("id");
+  db.run("UPDATE items SET viewCount = viewCount + 1 WHERE id = ?", [id]);
   return c.json({ ok: true });
 });
 
-// Join waitlist
-app.post("/api/waitlist/:id", async (c) => {
-  cleanReservations();
-  const id = c.req.param("id");
-  const { name } = await c.req.json();
-  if (!name) return c.json({ error: "Name required" }, 400);
-
-  const existing = db.query("SELECT * FROM reservations WHERE itemId = ?").get(id) as any;
-  if (!existing) return c.json({ error: "Not reserved" }, 404);
-
-  const waitlist = JSON.parse(existing.waitlist || "[]");
-  waitlist.push(name);
-  db.run("UPDATE reservations SET waitlist = ? WHERE itemId = ?", [JSON.stringify(waitlist), id]);
-  return c.json({ ok: true });
+// Track page visit
+app.post("/api/visit", (c) => {
+  db.run("UPDATE page_visits SET count = count + 1 WHERE id = 1");
+  const row = db.query("SELECT count FROM page_visits WHERE id = 1").get() as any;
+  return c.json({ ok: true, count: row?.count || 0 });
 });
 
 // ─── Auth ───
@@ -217,17 +214,12 @@ app.use("/api/admin/*", async (c, next) => {
 });
 
 app.get("/api/admin/items", (c) => {
-  cleanReservations();
   const items = db.query("SELECT * FROM items ORDER BY createdAt DESC").all() as any[];
-  const reservations = db.query("SELECT * FROM reservations").all() as any[];
-  const resMap: Record<string, any> = {};
-  for (const r of reservations) {
-    resMap[r.itemId] = { reservedBy: r.reservedBy, expiresAt: r.expiresAt, waitlist: JSON.parse(r.waitlist || "[]") };
-  }
+  const visits = db.query("SELECT count FROM page_visits WHERE id = 1").get() as any;
   return c.json({
-    items: items.map((i) => ({ ...i, sold: !!i.sold })),
+    items: items.map((i) => ({ ...i, sold: !!i.sold, reserved: !!i.reserved })),
     settings: { ...getAllSettings(), adminPassword: "set" },
-    reservations: resMap,
+    visits: visits?.count || 0,
   });
 });
 
@@ -235,8 +227,8 @@ app.post("/api/admin/items", async (c) => {
   const body = await c.req.json();
   const id = genId();
   db.run(
-    "INSERT INTO items (id, name, description, price, category, condition, imageUrl, sold) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-    [id, body.name, body.description || "", body.price || 0, body.category || "Other", body.condition || "Good", body.imageUrl || "", body.sold ? 1 : 0]
+    "INSERT INTO items (id, name, description, price, category, condition, imageUrl, sold, reserved) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    [id, body.name, body.description || "", body.price || 0, body.category || "Other", body.condition || "Good", body.imageUrl || "", body.sold ? 1 : 0, body.reserved ? 1 : 0]
   );
   return c.json({ ok: true, id });
 });
@@ -245,8 +237,8 @@ app.put("/api/admin/items/:id", async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json();
   db.run(
-    "UPDATE items SET name=?, description=?, price=?, category=?, condition=?, imageUrl=?, sold=?, updatedAt=datetime('now') WHERE id=?",
-    [body.name, body.description || "", body.price || 0, body.category || "Other", body.condition || "Good", body.imageUrl || "", body.sold ? 1 : 0, id]
+    "UPDATE items SET name=?, description=?, price=?, category=?, condition=?, imageUrl=?, sold=?, reserved=?, updatedAt=datetime('now') WHERE id=?",
+    [body.name, body.description || "", body.price || 0, body.category || "Other", body.condition || "Good", body.imageUrl || "", body.sold ? 1 : 0, body.reserved ? 1 : 0, id]
   );
   return c.json({ ok: true });
 });
