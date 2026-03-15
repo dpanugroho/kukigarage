@@ -544,6 +544,156 @@ td img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; }
   th, td { padding: 8px 10px; }
 }
 
+/* ─── Detail Page ─── */
+.detail-page { padding: 20px 0 40px; }
+.detail-back { display: inline-block; margin-bottom: 16px; font-size: 0.9rem; }
+.detail-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.detail-gallery {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: #f5ebe0;
+  overflow: hidden;
+}
+.detail-gallery img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #f5ebe0;
+}
+.detail-gallery .gallery-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+  color: var(--accent);
+}
+.gallery-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,0.85);
+  border: none;
+  font-size: 1.4rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.gallery-nav:hover { background: rgba(255,255,255,1); }
+.gallery-nav.prev { left: 10px; }
+.gallery-nav.next { right: 10px; }
+.gallery-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0;
+  background: var(--card-bg);
+}
+.gallery-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+}
+.gallery-dot.active { background: var(--primary); }
+.gallery-thumbs {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px 12px;
+  overflow-x: auto;
+}
+.gallery-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border 0.2s;
+  flex-shrink: 0;
+}
+.gallery-thumb.active { border-color: var(--primary); }
+.detail-body {
+  padding: 24px;
+}
+.detail-body h1 {
+  font-size: 1.6rem;
+  margin-bottom: 4px;
+}
+.detail-body .price {
+  font-family: var(--font-handwritten);
+  font-size: 2rem;
+  color: var(--primary);
+  margin-bottom: 12px;
+}
+.detail-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.detail-description {
+  color: var(--text);
+  line-height: 1.8;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+}
+.detail-counts {
+  display: flex;
+  gap: 16px;
+  font-size: 0.88rem;
+  color: var(--text-light);
+  margin-bottom: 12px;
+}
+.detail-dates {
+  font-size: 0.82rem;
+  color: var(--text-light);
+  margin-bottom: 20px;
+}
+.detail-body .interest-btn {
+  max-width: 300px;
+}
+.detail-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+.detail-overlay.sold { background: var(--sold-overlay); }
+.detail-overlay.reserved { background: var(--reserved-overlay); }
+.detail-overlay span {
+  font-family: var(--font-handwritten);
+  color: #fff;
+  padding: 10px 40px;
+  font-size: 2.5rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transform: rotate(-12deg);
+  letter-spacing: 4px;
+}
+.detail-overlay.sold span { background: var(--danger); }
+.detail-overlay.reserved span { background: var(--warning); }
+
 /* ─── Cat Decorations ─── */
 .cat-divider {
   text-align: center;
@@ -693,6 +843,9 @@ async function render() {
   const route = getRoute();
   if (route === '#/admin') {
     await renderAdmin();
+  } else if (route.startsWith('#/item/')) {
+    const itemId = route.replace('#/item/', '');
+    await renderDetail(itemId);
   } else {
     await renderPublic();
   }
@@ -783,8 +936,9 @@ async function renderPublic() {
     }
 
     grid.innerHTML = filtered.map(item => {
-      const imgHtml = item.imageUrl
-        ? `<img class="card-img" src="${escHtml(item.imageUrl)}" alt="${escHtml(item.name)}" onerror="this.outerHTML='<div class=\\'card-img-placeholder\\'>📷</div>'">`
+      const thumbUrl = (item.images && item.images.length > 0) ? item.images[0] : item.imageUrl;
+      const imgHtml = thumbUrl
+        ? `<img class="card-img" src="${escHtml(thumbUrl)}" alt="${escHtml(item.name)}" onerror="this.outerHTML='<div class=\\'card-img-placeholder\\'>📷</div>'">`
         : '<div class="card-img-placeholder">📷</div>';
       const soldHtml = item.sold ? '<div class="sold-overlay"><span>SOLD</span></div>' : '';
       const reservedHtml = !item.sold && item.reserved ? '<div class="reserved-overlay"><span>RESERVED</span></div>' : '';
@@ -797,9 +951,12 @@ async function renderPublic() {
         <div class="card${item.sold ? ' sold' : ''}${item.reserved ? ' reserved' : ''}">
           ${soldHtml}
           ${reservedHtml}
+          <a href="#/item/${item.id}" style="display:block;text-decoration:none;color:inherit;position:relative">
           ${imgHtml}
+          ${item.images && item.images.length > 1 ? `<span style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;padding:2px 8px;border-radius:10px;font-size:0.75rem">📷 ${item.images.length}</span>` : ''}
+          </a>
           <div class="card-body">
-            <h3>${escHtml(item.name)}</h3>
+            <a href="#/item/${item.id}" style="text-decoration:none;color:inherit"><h3>${escHtml(item.name)}</h3></a>
             <div class="price">${formatPrice(item.price)}</div>
             <div class="card-meta">
               <span class="badge">${escHtml(item.category)}</span>
@@ -849,6 +1006,115 @@ async function renderPublic() {
   });
 
   renderItems();
+}
+
+// ─── Detail Page ───
+async function renderDetail(itemId) {
+  const data = await api('/api/items');
+  const item = data.items.find(i => i.id === itemId);
+  if (!item) {
+    app.innerHTML = '<div class="container" style="padding:60px 0;text-align:center"><h2>Item not found</h2><a href="#/">← Back</a></div>';
+    return;
+  }
+
+  // Track view
+  api(`/api/view/${itemId}`, { method: 'POST' });
+  item.viewCount = (item.viewCount || 0) + 1;
+
+  // Merge imageUrl + images array
+  const allImages = [];
+  if (item.images && item.images.length > 0) {
+    allImages.push(...item.images);
+  } else if (item.imageUrl) {
+    allImages.push(item.imageUrl);
+  }
+
+  const hasImages = allImages.length > 0;
+  const overlayHtml = item.sold
+    ? '<div class="detail-overlay sold"><span>SOLD</span></div>'
+    : (item.reserved ? '<div class="detail-overlay reserved"><span>RESERVED</span></div>' : '');
+
+  const interestBtn = !item.sold && !item.reserved
+    ? `<button class="interest-btn" id="detailInterestBtn">🐾 I'm interested!</button>`
+    : '';
+
+  app.innerHTML = `
+    ${generatePawBg()}
+    <div class="container detail-page">
+      <a href="#/" class="detail-back">← Back to all items</a>
+      <div class="detail-card">
+        <div class="detail-gallery">
+          ${overlayHtml}
+          ${hasImages
+            ? `<img id="galleryMain" src="${escHtml(allImages[0])}" alt="${escHtml(item.name)}" onerror="this.parentElement.innerHTML='<div class=gallery-placeholder>📷</div>'">`
+            : '<div class="gallery-placeholder">📷</div>'}
+          ${allImages.length > 1 ? `
+            <button class="gallery-nav prev" id="galPrev">‹</button>
+            <button class="gallery-nav next" id="galNext">›</button>
+          ` : ''}
+        </div>
+        ${allImages.length > 1 ? `
+          <div class="gallery-dots" id="galleryDots">
+            ${allImages.map((_, i) => `<button class="gallery-dot${i === 0 ? ' active' : ''}" data-idx="${i}"></button>`).join('')}
+          </div>
+          <div class="gallery-thumbs">
+            ${allImages.map((url, i) => `<img class="gallery-thumb${i === 0 ? ' active' : ''}" src="${escHtml(url)}" data-idx="${i}" alt="">`).join('')}
+          </div>
+        ` : ''}
+        <div class="detail-body">
+          <h1>${escHtml(item.name)}</h1>
+          <div class="price">${formatPrice(item.price)}</div>
+          <div class="detail-meta">
+            <span class="badge">${escHtml(item.category)}</span>
+            <span class="badge condition">${escHtml(item.condition)}</span>
+          </div>
+          ${item.description ? `<div class="detail-description">${escHtml(item.description)}</div>` : ''}
+          <div class="detail-counts">
+            <span>👀 ${item.viewCount || 0} views</span>
+            <span>🐾 ${item.interestCount || 0} interested</span>
+          </div>
+          <div class="detail-dates">
+            Listed ${formatDate(item.createdAt)}${item.updatedAt && item.updatedAt !== item.createdAt ? ' · Updated ' + formatDate(item.updatedAt) : ''}
+          </div>
+          ${interestBtn}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Gallery navigation
+  if (allImages.length > 1) {
+    let currentIdx = 0;
+    const mainImg = document.getElementById('galleryMain');
+    const dots = document.querySelectorAll('.gallery-dot');
+    const thumbs = document.querySelectorAll('.gallery-thumb');
+
+    function showImage(idx) {
+      currentIdx = idx;
+      mainImg.src = allImages[idx];
+      dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+      thumbs.forEach((t, i) => t.classList.toggle('active', i === idx));
+    }
+
+    document.getElementById('galPrev').addEventListener('click', () => showImage((currentIdx - 1 + allImages.length) % allImages.length));
+    document.getElementById('galNext').addEventListener('click', () => showImage((currentIdx + 1) % allImages.length));
+    document.getElementById('galleryDots').addEventListener('click', e => {
+      if (e.target.dataset.idx !== undefined) showImage(Number(e.target.dataset.idx));
+    });
+    document.querySelector('.gallery-thumbs').addEventListener('click', e => {
+      if (e.target.dataset.idx !== undefined) showImage(Number(e.target.dataset.idx));
+    });
+  }
+
+  // Interest button
+  const intBtn = document.getElementById('detailInterestBtn');
+  if (intBtn) {
+    intBtn.addEventListener('click', async () => {
+      intBtn.disabled = true;
+      intBtn.textContent = '🐾 Thanks!';
+      await api(`/api/interest/${itemId}`, { method: 'POST' });
+    });
+  }
 }
 
 // ─── Admin Page ───
@@ -979,13 +1245,18 @@ async function renderAdminDashboard() {
             <label>Description</label>
             <textarea id="fDesc">${editing ? escHtml(editing.description || '') : ''}</textarea>
           </div>
-          <div class="form-group">
-            <label>Upload Image</label>
-            <input type="file" id="fImageFile" accept="image/*" style="font-size:0.85rem">
-          </div>
-          <div class="form-group">
-            <label>Or paste Image URL</label>
-            <input type="url" id="fImage" placeholder="https://..." value="${editing ? escHtml(editing.imageUrl || '') : ''}">
+          <div class="form-group full">
+            <label>Images (up to 4) — upload files or paste URLs</label>
+            <input type="file" id="fImageFiles" accept="image/*" multiple style="font-size:0.85rem">
+            <div id="existingImages" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+              ${editing && editing.images && editing.images.length > 0 ? editing.images.map((url, i) => `
+                <div style="position:relative">
+                  <img src="${escHtml(url)}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
+                  <button type="button" class="remove-img-btn" data-idx="${i}" style="position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:0.7rem;cursor:pointer;line-height:1">✕</button>
+                </div>
+              `).join('') : ''}
+            </div>
+            <input type="text" id="fImageUrl" placeholder="Or paste image URL and press Enter" style="margin-top:8px">
           </div>
           <div class="form-group">
             <label>Sold</label>
@@ -1090,6 +1361,31 @@ async function renderAdminDashboard() {
     document.getElementById('fReservedLabel').textContent = reservedToggle.classList.contains('on') ? 'Yes' : 'No';
   });
 
+  // Image management
+  window._editingImages = editing && editing.images ? [...editing.images] : [];
+
+  // Remove image button
+  document.getElementById('existingImages').addEventListener('click', e => {
+    const btn = e.target.closest('.remove-img-btn');
+    if (!btn) return;
+    const idx = Number(btn.dataset.idx);
+    window._editingImages.splice(idx, 1);
+    render();
+    document.getElementById('itemForm').scrollIntoView();
+  });
+
+  // Add image by URL
+  document.getElementById('fImageUrl').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const url = e.target.value.trim();
+    if (!url) return;
+    if (window._editingImages.length >= 4) { alert('Maximum 4 images'); return; }
+    window._editingImages.push(url);
+    render();
+    document.getElementById('itemForm').scrollIntoView();
+  });
+
   // Save item
   document.getElementById('saveItemBtn').addEventListener('click', async () => {
     const name = document.getElementById('fName').value.trim();
@@ -1097,24 +1393,30 @@ async function renderAdminDashboard() {
     const category = document.getElementById('fCategory').value;
     const condition = document.getElementById('fCondition').value;
     const description = document.getElementById('fDesc').value.trim();
-    let imageUrl = document.getElementById('fImage').value.trim();
     const sold = document.getElementById('fSold').classList.contains('on');
     const reserved = document.getElementById('fReserved').classList.contains('on');
-    const imageFile = document.getElementById('fImageFile').files[0];
+    const imageFiles = document.getElementById('fImageFiles').files;
 
     if (!name) { alert('Please enter an item name'); return; }
 
-    // Upload image file if selected
-    if (imageFile) {
+    // Start with existing images (may have been modified by remove buttons)
+    let images = [...(window._editingImages || [])];
+
+    // Upload new files
+    for (const file of imageFiles) {
+      if (images.length >= 4) break;
       const formData = new FormData();
-      formData.append('image', imageFile);
+      formData.append('image', file);
       const uploadRes = await fetch('/api/admin/upload', { method: 'POST', body: formData });
       const uploadData = await uploadRes.json();
       if (uploadData.error) { alert(uploadData.error); return; }
-      imageUrl = uploadData.url;
+      images.push(uploadData.url);
     }
 
-    const body = { name, price, category, condition, description, imageUrl, sold, reserved };
+    // Use first image as imageUrl for backwards compat / card thumbnail
+    const imageUrl = images[0] || '';
+
+    const body = { name, price, category, condition, description, imageUrl, images, sold, reserved };
 
     if (editingItemId) {
       await api(`/api/admin/items/${editingItemId}`, { method: 'PUT', body });

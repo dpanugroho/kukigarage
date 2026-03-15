@@ -29,6 +29,7 @@ db.run(`CREATE TABLE IF NOT EXISTS items (
   category TEXT DEFAULT 'Other',
   condition TEXT DEFAULT 'Good',
   imageUrl TEXT DEFAULT '',
+  images TEXT DEFAULT '[]',
   sold INTEGER DEFAULT 0,
   reserved INTEGER DEFAULT 0,
   interestCount INTEGER DEFAULT 0,
@@ -42,6 +43,7 @@ try { db.run("ALTER TABLE items ADD COLUMN updatedAt TEXT DEFAULT (datetime('now
 try { db.run("ALTER TABLE items ADD COLUMN reserved INTEGER DEFAULT 0"); } catch {}
 try { db.run("ALTER TABLE items ADD COLUMN interestCount INTEGER DEFAULT 0"); } catch {}
 try { db.run("ALTER TABLE items ADD COLUMN viewCount INTEGER DEFAULT 0"); } catch {}
+try { db.run("ALTER TABLE items ADD COLUMN images TEXT DEFAULT '[]'"); } catch {}
 
 // Page visit counter
 db.run(`CREATE TABLE IF NOT EXISTS page_visits (
@@ -139,7 +141,7 @@ app.get("/api/items", (c) => {
   const items = db.query("SELECT * FROM items ORDER BY createdAt DESC").all() as any[];
   const visits = db.query("SELECT count FROM page_visits WHERE id = 1").get() as any;
   return c.json({
-    items: items.map((i) => ({ ...i, sold: !!i.sold, reserved: !!i.reserved })),
+    items: items.map((i) => ({ ...i, sold: !!i.sold, reserved: !!i.reserved, images: JSON.parse(i.images || '[]') })),
     settings: getAllSettings(),
     visits: visits?.count || 0,
   });
@@ -217,7 +219,7 @@ app.get("/api/admin/items", (c) => {
   const items = db.query("SELECT * FROM items ORDER BY createdAt DESC").all() as any[];
   const visits = db.query("SELECT count FROM page_visits WHERE id = 1").get() as any;
   return c.json({
-    items: items.map((i) => ({ ...i, sold: !!i.sold, reserved: !!i.reserved })),
+    items: items.map((i) => ({ ...i, sold: !!i.sold, reserved: !!i.reserved, images: JSON.parse(i.images || '[]') })),
     settings: { ...getAllSettings(), adminPassword: "set" },
     visits: visits?.count || 0,
   });
@@ -227,8 +229,8 @@ app.post("/api/admin/items", async (c) => {
   const body = await c.req.json();
   const id = genId();
   db.run(
-    "INSERT INTO items (id, name, description, price, category, condition, imageUrl, sold, reserved) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    [id, body.name, body.description || "", body.price || 0, body.category || "Other", body.condition || "Good", body.imageUrl || "", body.sold ? 1 : 0, body.reserved ? 1 : 0]
+    "INSERT INTO items (id, name, description, price, category, condition, imageUrl, images, sold, reserved) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    [id, body.name, body.description || "", body.price || 0, body.category || "Other", body.condition || "Good", body.imageUrl || "", JSON.stringify(body.images || []), body.sold ? 1 : 0, body.reserved ? 1 : 0]
   );
   return c.json({ ok: true, id });
 });
@@ -237,8 +239,8 @@ app.put("/api/admin/items/:id", async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json();
   db.run(
-    "UPDATE items SET name=?, description=?, price=?, category=?, condition=?, imageUrl=?, sold=?, reserved=?, updatedAt=datetime('now') WHERE id=?",
-    [body.name, body.description || "", body.price || 0, body.category || "Other", body.condition || "Good", body.imageUrl || "", body.sold ? 1 : 0, body.reserved ? 1 : 0, id]
+    "UPDATE items SET name=?, description=?, price=?, category=?, condition=?, imageUrl=?, images=?, sold=?, reserved=?, updatedAt=datetime('now') WHERE id=?",
+    [body.name, body.description || "", body.price || 0, body.category || "Other", body.condition || "Good", body.imageUrl || "", JSON.stringify(body.images || []), body.sold ? 1 : 0, body.reserved ? 1 : 0, id]
   );
   return c.json({ ok: true });
 });
@@ -264,7 +266,7 @@ app.put("/api/admin/settings", async (c) => {
 app.get("/api/admin/export", (c) => {
   const items = db.query("SELECT * FROM items").all() as any[];
   const settings = getAllSettings();
-  return c.json({ items: items.map((i) => ({ ...i, sold: !!i.sold })), settings });
+  return c.json({ items: items.map((i) => ({ ...i, sold: !!i.sold, reserved: !!i.reserved, images: JSON.parse(i.images || '[]') })), settings });
 });
 
 app.post("/api/admin/import", async (c) => {
