@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(~/.bun/bin/bun add:*)",
+      "Bash(curl:*)",
+      "WebSearch",
+      "WebFetch(domain:worldsustainabletoyday.com)"
+    ]
+  }
+}

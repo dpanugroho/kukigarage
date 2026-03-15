@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kuki's Garage Sale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #c56b4a;
+  --primary-dark: #a8553a;
+  --accent: #e8a87c;
+  --bg: #fef9f4;
+  --card-bg: #ffffff;
+  --text: #3d2c2c;
+  --text-light: #9a8578;
+  --border: #e8ddd4;
+  --sold-overlay: rgba(60,40,30,0.65);
+  --reserved-overlay: rgba(60,40,30,0.45);
+  --success: #6a9f7d;
+  --danger: #d35d6e;
+  --warning: #e8a87c;
+  --shadow: 0 2px 8px rgba(80,50,30,0.07);
+  --radius: 12px;
+  --max-width: 1100px;
+  --font-main: 'Nunito', sans-serif;
+  --font-handwritten: 'Caveat', cursive;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-main);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { color: var(--primary-dark); }
+
+.container { max-width: var(--max-width); margin: 0 auto; padding: 0 16px; }
+
+/* Header */
+.header {
+  background: linear-gradient(135deg, #fef9f4, #fdf0e5);
+  border-bottom: 2px dashed var(--border);
+  padding: 32px 0 28px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '🐾  🐾  🐾  🐾  🐾  🐾  🐾  🐾  🐾  🐾  🐾  🐾';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  letter-spacing: 1.2rem;
+  opacity: 0.06;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.header-titles { text-align: left; }
+.header h1 {
+  font-family: var(--font-handwritten);
+  font-size: 2.8rem;
+  color: var(--primary);
+  line-height: 1.1;
+}
+.header p {
+  color: var(--text-light);
+  font-size: 0.95rem;
+  margin-top: 4px;
+  font-style: italic;
+}
+.header .admin-link {
+  padding: 8px 16px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+.header .admin-link:hover { background: var(--primary-dark); color: #fff; transform: scale(1.05); }
+
+/* Public Stats */
+.public-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px 0 8px;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+  color: var(--text-light);
+}
+.public-stat {
+  background: var(--card-bg);
+  padding: 8px 18px;
+  border-radius: 20px;
+  border: 1px dashed var(--border);
+}
+.public-stat strong {
+  color: var(--primary);
+  font-size: 1.05rem;
+}
+.public-stat-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--border);
+  display: none;
+}
+@media (max-width: 600px) {
+  .public-stats { flex-direction: column; gap: 6px; }
+}
+
+/* Filter & Search Bar */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 0;
+  align-items: center;
+}
+.search-input {
+  flex: 1 1 220px;
+  padding: 10px 16px;
+  border: 2px solid var(--border);
+  border-radius: 24px;
+  font-size: 0.95rem;
+  font-family: var(--font-main);
+  outline: none;
+  transition: border 0.2s, box-shadow 0.2s;
+  background: var(--card-bg);
+}
+.search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(200,107,74,0.1); }
+
+.category-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+.cat-btn {
+  padding: 6px 16px;
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  background: var(--card-bg);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: var(--font-main);
+  font-weight: 600;
+  transition: all 0.2s;
+  color: var(--text-light);
+}
+.cat-btn:hover, .cat-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+/* Item Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 24px;
+  padding: 12px 0 40px;
+}
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  position: relative;
+  transition: transform 0.3s, box-shadow 0.3s;
+  border: 1px solid var(--border);
+}
+.card:nth-child(odd) { transform: rotate(-0.5deg); }
+.card:nth-child(even) { transform: rotate(0.5deg); }
+.card:hover { transform: rotate(0deg) translateY(-4px); box-shadow: 0 8px 24px rgba(80,50,30,0.12); }
+.card-img {
+  width: 100%;
+  height: 210px;
+  object-fit: cover;
+  background: #f5ebe0;
+  display: block;
+}
+.card-img-placeholder {
+  width: 100%;
+  height: 210px;
+  background: linear-gradient(135deg, #f5ebe0, #fde8d8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  font-size: 3rem;
+}
+.card-body { padding: 16px; }
+.card-body h3 { font-size: 1.05rem; margin-bottom: 4px; font-weight: 700; }
+.card-body .price {
+  font-family: var(--font-handwritten);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+.card-meta {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.badge {
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: #fdf0e5;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 700;
+}
+.badge.condition { background: #e8f5ee; color: var(--success); }
+.wa-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 9px 14px;
+  background: #25d366;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: var(--font-main);
+  transition: all 0.2s;
+  width: 100%;
+  justify-content: center;
+}
+.wa-btn:hover { background: #1fb855; transform: scale(1.02); }
+
+/* Sold overlay */
+.sold-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--sold-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+}
+.sold-overlay span {
+  font-family: var(--font-handwritten);
+  background: var(--danger);
+  color: #fff;
+  padding: 6px 32px;
+  font-size: 2rem;
+  font-weight: 600;
+  border-radius: 6px;
+  transform: rotate(-12deg);
+  letter-spacing: 3px;
+}
+.card.sold .wa-btn { display: none; }
+.card.sold .reserve-btn { display: none; }
+
+/* Reserved overlay */
+.reserved-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--reserved-overlay);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+}
+.reserved-overlay span {
+  font-family: var(--font-handwritten);
+  background: var(--warning);
+  color: #fff;
+  padding: 6px 24px;
+  font-size: 1.6rem;
+  font-weight: 600;
+  border-radius: 6px;
+  letter-spacing: 2px;
+}
+.reserved-overlay .timer {
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  padding: 4px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+.card.reserved .wa-btn { display: none; }
+.card.reserved .reserve-btn { display: none; }
+
+/* Reserve & Waitlist buttons */
+.reserve-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 9px 14px;
+  background: var(--warning);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: var(--font-main);
+  transition: all 0.2s;
+  width: 100%;
+  justify-content: center;
+}
+.reserve-btn:hover { background: #d99565; transform: scale(1.02); }
+.waitlist-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 9px 14px;
+  background: #a0785c;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: var(--font-main);
+  transition: all 0.2s;
+  width: 100%;
+  justify-content: center;
+}
+.waitlist-btn:hover { background: #8b6750; transform: scale(1.02); }
+.waitlist-info {
+  font-size: 0.78rem;
+  color: var(--text-light);
+  text-align: center;
+  margin-top: 4px;
+}
+.card-dates {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-light);
+}
+.empty-state span { font-size: 3rem; display: block; margin-bottom: 12px; }
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 20px 0;
+  color: var(--text-light);
+  font-size: 0.85rem;
+  border-top: 2px dashed var(--border);
+}
+
+/* ─── Admin ─── */
+.admin-page { padding-bottom: 40px; }
+.btn {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-family: var(--font-main);
+  transition: all 0.2s;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: #c04e5e; }
+.btn-secondary { background: #f5ebe0; color: var(--text); }
+.btn-secondary:hover { background: #edddd0; }
+.btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+
+/* Stats */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 18px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.stat-card .num { font-family: var(--font-handwritten); font-size: 2.2rem; font-weight: 600; color: var(--primary); }
+.stat-card .label { font-size: 0.82rem; color: var(--text-light); margin-top: 2px; }
+
+/* Table */
+.table-wrap {
+  overflow-x: auto;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 24px;
+}
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+th { background: #fdf0e5; font-weight: 700; white-space: nowrap; }
+td img { width: 40px; height: 40px; object-fit: cover; border-radius: 6px; }
+.actions { display: flex; gap: 6px; }
+
+/* Form */
+.form-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.form-card h3 { margin-bottom: 16px; font-size: 1.1rem; }
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-group label { font-size: 0.82rem; font-weight: 600; color: var(--text-light); }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border 0.2s;
+  font-family: inherit;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { border-color: var(--primary); }
+.form-group textarea { resize: vertical; min-height: 70px; }
+.form-actions { display: flex; gap: 10px; margin-top: 16px; }
+
+/* Toggle */
+.toggle-wrap { display: flex; align-items: center; gap: 10px; padding-top: 6px; }
+.toggle {
+  width: 44px; height: 24px;
+  background: #ccc;
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.toggle.on { background: var(--success); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  top: 2px; left: 2px;
+  transition: transform 0.2s;
+}
+.toggle.on::after { transform: translateX(20px); }
+
+/* Password gate */
+.gate {
+  max-width: 360px;
+  margin: 80px auto;
+  text-align: center;
+}
+.gate input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  margin-bottom: 12px;
+  outline: none;
+}
+.gate h2 { font-family: var(--font-handwritten); font-size: 2rem; color: var(--primary); margin-bottom: 16px; }
+.gate .error { color: var(--danger); font-size: 0.85rem; margin-bottom: 8px; }
+
+/* Import/Export */
+.io-section { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+
+/* Back link */
+.back-link { display: inline-block; margin: 16px 0; font-size: 0.9rem; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .header h1 { font-size: 1.5rem; }
+  .grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .stats { grid-template-columns: 1fr 1fr; }
+  table { font-size: 0.78rem; }
+  th, td { padding: 8px 10px; }
+}
+
+/* ─── Cat Decorations ─── */
+.cat-divider {
+  text-align: center;
+  padding: 12px 0 4px;
+  font-size: 0.85rem;
+  color: var(--accent);
+  letter-spacing: 8px;
+  user-select: none;
+}
+
+/* Floating paw prints background */
+.paw-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.paw-bg span {
+  position: absolute;
+  opacity: 0.04;
+  transform: rotate(var(--r));
+}
+
+/* Cat silhouette in empty state */
+.empty-state .cat-ascii {
+  font-size: 0.7rem;
+  line-height: 1.2;
+  font-family: monospace;
+  display: inline-block;
+  margin-bottom: 12px;
+  opacity: 0.25;
+  color: var(--accent);
+}
+
+/* Cat footer */
+.cat-footer {
+  text-align: center;
+  padding: 28px 0 20px;
+  color: var(--text-light);
+  font-size: 0.85rem;
+  border-top: 2px dashed var(--border);
+  margin-top: 8px;
+}
+.cat-footer .cat-walk {
+  font-size: 1.3rem;
+  letter-spacing: 6px;
+  margin-bottom: 8px;
+  opacity: 0.3;
+}
+.cat-footer em {
+  font-family: var(--font-handwritten);
+  font-size: 1.1rem;
+  color: var(--primary);
+  font-style: normal;
+}
+
+/* Ensure content is above paw bg */
+.header, .container { position: relative; z-index: 1; }
+
+/* Hidden utility */
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+// ─── Constants ───
+const CATEGORIES = ['Electronics', 'Clothing', 'Furniture', 'Books', 'Toys', 'Kitchen', 'Sports', 'Other'];
+const CONDITIONS = ['New', 'Like New', 'Good', 'Fair', 'Used'];
+
+// ─── API Layer ───
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  return res.json();
+}
+
+// ─── Helpers ───
+// Avg kg CO2 saved by reusing instead of buying new (manufacturing emissions)
+// Avg kg CO2e saved per reused item, based on manufacturing LCA data
+// Sources: Eupedia, WRAP UK, Green Story/ThredUp, MIT footwear LCA, Get Online @ Home
+const CO2_PER_CATEGORY = {
+  Electronics: 80, Clothing: 20, Furniture: 90, Books: 2,
+  Toys: 4, Kitchen: 30, Sports: 25, Other: 15,
+};
+
+function estimateCO2(items) {
+  return items.filter(i => i.sold).reduce((sum, i) => sum + (CO2_PER_CATEGORY[i.category] || 15), 0);
+}
+
+function formatCO2(kg) {
+  if (kg >= 1000) return (kg / 1000).toFixed(1) + ' tons';
+  return kg + ' kg';
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const date = new Date(d + (d.includes('T') ? '' : 'Z'));
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatPrice(p) {
+  if (Number(p) === 0) return 'Free';
+  return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(p);
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function formatTimeLeft(ms) {
+  if (ms <= 0) return '0:00';
+  const mins = Math.floor(ms / 60000);
+  const secs = Math.floor((ms % 60000) / 1000);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// ─── Cat Decorations ───
+function generatePawBg() {
+  const paws = [];
+  for (let i = 0; i < 20; i++) {
+    const x = Math.random() * 100;
+    const y = Math.random() * 100;
+    const r = Math.floor(Math.random() * 360);
+    const size = 1.2 + Math.random() * 1.5;
+    paws.push(`<span style="left:${x}%;top:${y}%;--r:${r}deg;font-size:${size}rem">🐾</span>`);
+  }
+  return `<div class="paw-bg">${paws.join('')}</div>`;
+}
+
+// ─── Router ───
+function getRoute() { return location.hash || '#/'; }
+function navigate(hash) { location.hash = hash; }
+
+// ─── Render Engine ───
+const app = document.getElementById('app');
+
+async function render() {
+  const route = getRoute();
+  if (route === '#/admin') {
+    await renderAdmin();
+  } else {
+    await renderPublic();
+  }
+}
+
+// ─── Public Page ───
+async function renderPublic() {
+  const data = await api('/api/items');
+  const title = escHtml(data.settings.saleTitle || "Kuki's Garage Sale");
+  const items = data.items;
+  const reservations = data.reservations || {};
+
+  app.innerHTML = `
+    ${generatePawBg()}
+    <div class="header">
+      <div class="container">
+        <div class="header-inner">
+          <div class="header-titles">
+            <h1>${title}</h1>
+            <p>Kuki must not hoard! Kuki must let go of things!</p>
+          </div>
+          <a href="#/admin" class="admin-link">Admin</a>
+        </div>
+      </div>
+    </div>
+    <div class="container">
+      <div class="cat-divider">🐾 🐾 🐾</div>
+      <div class="public-stats">
+        <div class="public-stat"><strong>${items.filter(i => i.sold).length}</strong> items handed over</div>
+        <div class="public-stat-dot"></div>
+        <div class="public-stat" title="Estimated based on average manufacturing emissions avoided per category (sources: WRAP UK, Eupedia, MIT LCA studies)"><strong>~${formatCO2(estimateCO2(items))}</strong> CO₂ saved</div>
+        <div class="public-stat-dot"></div>
+        <div class="public-stat"><strong>${items.filter(i => !i.sold).length}</strong> items still looking for a new home</div>
+      </div>
+      <div class="toolbar">
+        <input type="text" class="search-input" id="searchInput" placeholder="Search items...">
+      </div>
+      <div class="category-bar" id="categoryBar">
+        <button class="cat-btn active" data-cat="All">All</button>
+        ${CATEGORIES.map(c => `<button class="cat-btn" data-cat="${c}">${c}</button>`).join('')}
+      </div>
+      <div class="grid" id="itemGrid"></div>
+      <div class="cat-footer">
+        <div class="cat-walk">🐾  🐾  🐾  🐱  🐾  🐾  🐾</div>
+        <em>Kuki's Garage Sale</em> — a Siberian cat's quest to declutter
+      </div>
+    </div>
+  `;
+
+  let activeCat = 'All';
+  let searchQuery = '';
+
+  function renderItems() {
+    const grid = document.getElementById('itemGrid');
+    let filtered = items;
+    if (activeCat !== 'All') filtered = filtered.filter(i => i.category === activeCat);
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(i =>
+        i.name.toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (filtered.length === 0) {
+      grid.innerHTML = `<div class="empty-state">
+        <pre class="cat-ascii">  /\\_/\\
+ ( o.o )
+  > ^ <
+ /|   |\\
+(_|   |_)</pre>
+        No items found... Kuki is napping
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered.map(item => {
+      const imgHtml = item.imageUrl
+        ? `<img class="card-img" src="${escHtml(item.imageUrl)}" alt="${escHtml(item.name)}" onerror="this.outerHTML='<div class=\\'card-img-placeholder\\'>📷</div>'">`
+        : '<div class="card-img-placeholder">📷</div>';
+      const soldHtml = item.sold ? '<div class="sold-overlay"><span>SOLD</span></div>' : '';
+      const reservation = reservations[item.id];
+      const isReserved = !item.sold && reservation;
+      const reservedHtml = isReserved
+        ? `<div class="reserved-overlay"><span>RESERVED</span><div class="timer" data-expires="${reservation.expiresAt}" data-item-id="${item.id}"></div></div>`
+        : '';
+      const waNum = data.settings.whatsappNumber || '';
+      const waText = encodeURIComponent(`Hi, I'm interested in ${item.name}`);
+      const waHref = waNum ? `https://wa.me/${waNum}?text=${waText}` : '#';
+      const waitlistCount = isReserved && reservation.waitlist ? reservation.waitlist.length : 0;
+
+      let actionButtons = '';
+      if (!item.sold) {
+        if (!isReserved) {
+          actionButtons = `
+            <a class="wa-btn" href="${waHref}" target="_blank" rel="noopener">💬 Chat on WhatsApp</a>
+            <button class="reserve-btn" data-item-id="${item.id}" data-item-name="${escHtml(item.name)}">🔒 Reserve (20 min)</button>
+          `;
+        } else {
+          actionButtons = `
+            <button class="waitlist-btn" data-item-id="${item.id}" data-item-name="${escHtml(item.name)}">📋 Join Waiting List</button>
+            ${waitlistCount > 0 ? `<div class="waitlist-info">${waitlistCount} person${waitlistCount > 1 ? 's' : ''} waiting</div>` : ''}
+          `;
+        }
+      }
+
+      return `
+        <div class="card${item.sold ? ' sold' : ''}${isReserved ? ' reserved' : ''}">
+          ${soldHtml}
+          ${reservedHtml}
+          ${imgHtml}
+          <div class="card-body">
+            <h3>${escHtml(item.name)}</h3>
+            <div class="price">${formatPrice(item.price)}</div>
+            <div class="card-meta">
+              <span class="badge">${escHtml(item.category)}</span>
+              <span class="badge condition">${escHtml(item.condition)}</span>
+            </div>
+            <div class="card-dates">
+              Listed ${formatDate(item.createdAt)}${item.updatedAt && item.updatedAt !== item.createdAt ? ' · Updated ' + formatDate(item.updatedAt) : ''}
+            </div>
+            ${actionButtons}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    startTimers();
+  }
+
+  // Category filter
+  document.getElementById('categoryBar').addEventListener('click', e => {
+    if (e.target.classList.contains('cat-btn')) {
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      activeCat = e.target.dataset.cat;
+      renderItems();
+    }
+  });
+
+  // Search
+  document.getElementById('searchInput').addEventListener('input', e => {
+    searchQuery = e.target.value;
+    renderItems();
+  });
+
+  // Reserve & Waitlist
+  document.getElementById('itemGrid').addEventListener('click', async e => {
+    const reserveBtn = e.target.closest('.reserve-btn');
+    if (reserveBtn) {
+      const itemId = reserveBtn.dataset.itemId;
+      const itemName = reserveBtn.dataset.itemName;
+      const name = prompt(`Reserve "${itemName}"?\nEnter your name:`);
+      if (name && name.trim()) {
+        const res = await api(`/api/reserve/${itemId}`, { method: 'POST', body: { name: name.trim() } });
+        if (res.error) { alert(res.error); }
+        await render();
+      }
+      return;
+    }
+    const waitlistBtn = e.target.closest('.waitlist-btn');
+    if (waitlistBtn) {
+      const itemId = waitlistBtn.dataset.itemId;
+      const itemName = waitlistBtn.dataset.itemName;
+      const name = prompt(`"${itemName}" is currently reserved.\nEnter your name to join the waiting list:`);
+      if (name && name.trim()) {
+        await api(`/api/waitlist/${itemId}`, { method: 'POST', body: { name: name.trim() } });
+        await render();
+      }
+    }
+  });
+
+  // Timer
+  let timerInterval = null;
+  function startTimers() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      const timers = document.querySelectorAll('.timer[data-expires]');
+      if (timers.length === 0) { clearInterval(timerInterval); return; }
+      const now = Date.now();
+      let needsRerender = false;
+      timers.forEach(el => {
+        const expires = Number(el.dataset.expires);
+        const left = expires - now;
+        if (left <= 0) {
+          needsRerender = true;
+        } else {
+          el.textContent = formatTimeLeft(left) + ' left';
+        }
+      });
+      if (needsRerender) render();
+    }, 1000);
+  }
+
+  renderItems();
+}
+
+// ─── Admin Page ───
+let editingItemId = null;
+
+async function renderAdmin() {
+  const auth = await api('/api/auth/check');
+
+  if (auth.needsSetup) {
+    renderSetPassword();
+    return;
+  }
+
+  if (!auth.authenticated) {
+    renderPasswordGate();
+    return;
+  }
+
+  await renderAdminDashboard();
+}
+
+function renderSetPassword() {
+  app.innerHTML = `
+    <div class="container">
+      <div class="gate">
+        <h2>Set Admin Password</h2>
+        <p style="margin-bottom:16px;color:var(--text-light)">First time? Create a password to protect your admin area.</p>
+        <input type="password" id="newPass" placeholder="Choose a password">
+        <input type="password" id="confirmPass" placeholder="Confirm password">
+        <div class="error hidden" id="passError"></div>
+        <button class="btn btn-primary" id="setPassBtn" style="width:100%">Set Password</button>
+        <a href="#/" class="back-link">← Back to store</a>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('setPassBtn').addEventListener('click', async () => {
+    const p = document.getElementById('newPass').value;
+    const c = document.getElementById('confirmPass').value;
+    const err = document.getElementById('passError');
+    if (!p) { err.textContent = 'Please enter a password'; err.classList.remove('hidden'); return; }
+    if (p !== c) { err.textContent = 'Passwords do not match'; err.classList.remove('hidden'); return; }
+    const res = await api('/api/auth/setup', { method: 'POST', body: { password: p } });
+    if (res.error) { err.textContent = res.error; err.classList.remove('hidden'); return; }
+    await render();
+  });
+}
+
+function renderPasswordGate() {
+  app.innerHTML = `
+    <div class="container">
+      <div class="gate">
+        <h2>Admin Login</h2>
+        <input type="password" id="gatePass" placeholder="Enter password">
+        <div class="error hidden" id="gateError"></div>
+        <button class="btn btn-primary" id="gateBtn" style="width:100%">Login</button>
+        <a href="#/" class="back-link">← Back to store</a>
+      </div>
+    </div>
+  `;
+
+  const submit = async () => {
+    const p = document.getElementById('gatePass').value;
+    const res = await api('/api/auth/login', { method: 'POST', body: { password: p } });
+    if (res.error) {
+      const err = document.getElementById('gateError');
+      err.textContent = res.error;
+      err.classList.remove('hidden');
+      return;
+    }
+    await render();
+  };
+
+  document.getElementById('gateBtn').addEventListener('click', submit);
+  document.getElementById('gatePass').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+}
+
+async function renderAdminDashboard() {
+  const data = await api('/api/admin/items');
+  const items = data.items;
+  const reservations = data.reservations || {};
+  const totalItems = items.length;
+  const soldCount = items.filter(i => i.sold).length;
+  const revenue = items.filter(i => i.sold).reduce((s, i) => s + Number(i.price), 0);
+  const editing = editingItemId ? items.find(i => i.id === editingItemId) : null;
+
+  app.innerHTML = `
+    <div class="header">
+      <div class="container">
+        <h1>Admin Dashboard</h1>
+      </div>
+    </div>
+    <div class="container admin-page">
+      <a href="#/" class="back-link">← Back to store</a>
+
+      <div class="stats">
+        <div class="stat-card"><div class="num">${totalItems}</div><div class="label">Total Items</div></div>
+        <div class="stat-card"><div class="num">${soldCount}</div><div class="label">Sold</div></div>
+        <div class="stat-card"><div class="num">${formatPrice(revenue)}</div><div class="label">Revenue</div></div>
+      </div>
+
+      <!-- Add/Edit Form -->
+      <div class="form-card" id="itemForm">
+        <h3>${editing ? 'Edit Item' : 'Add New Item'}</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" id="fName" value="${editing ? escHtml(editing.name) : ''}">
+          </div>
+          <div class="form-group">
+            <label>Price (EUR)</label>
+            <input type="number" id="fPrice" value="${editing ? editing.price : ''}" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="fCategory">
+              ${CATEGORIES.map(c => `<option value="${c}"${editing && editing.category === c ? ' selected' : ''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Condition</label>
+            <select id="fCondition">
+              ${CONDITIONS.map(c => `<option value="${c}"${editing && editing.condition === c ? ' selected' : ''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Description</label>
+            <textarea id="fDesc">${editing ? escHtml(editing.description || '') : ''}</textarea>
+          </div>
+          <div class="form-group">
+            <label>Upload Image</label>
+            <input type="file" id="fImageFile" accept="image/*" style="font-size:0.85rem">
+          </div>
+          <div class="form-group">
+            <label>Or paste Image URL</label>
+            <input type="url" id="fImage" placeholder="https://..." value="${editing ? escHtml(editing.imageUrl || '') : ''}">
+          </div>
+          <div class="form-group">
+            <label>Sold</label>
+            <div class="toggle-wrap">
+              <div class="toggle${editing && editing.sold ? ' on' : ''}" id="fSold"></div>
+              <span id="fSoldLabel">${editing && editing.sold ? 'Yes' : 'No'}</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" id="saveItemBtn">${editing ? 'Update Item' : 'Add Item'}</button>
+          ${editing ? '<button class="btn btn-secondary" id="cancelEditBtn">Cancel</button>' : ''}
+        </div>
+      </div>
+
+      <!-- Items Table -->
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th></th><th>Name</th><th>Price</th><th>Category</th><th>Condition</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="itemsTableBody">
+            ${items.length === 0 ? '<tr><td colspan="7" style="text-align:center;color:var(--text-light)">No items yet</td></tr>' : items.map(item => {
+              const res = reservations[item.id];
+              const statusHtml = item.sold
+                ? '<span style="color:var(--danger);font-weight:600">Sold</span>'
+                : (res ? '<span style="color:var(--warning);font-weight:600">Reserved (' + escHtml(res.reservedBy) + ')</span>' : '<span style="color:var(--success)">Available</span>');
+              return `
+              <tr>
+                <td>${item.imageUrl ? `<img src="${escHtml(item.imageUrl)}" alt="">` : '📷'}</td>
+                <td>${escHtml(item.name)}</td>
+                <td>${formatPrice(item.price)}</td>
+                <td>${escHtml(item.category)}</td>
+                <td>${escHtml(item.condition)}</td>
+                <td>${statusHtml}</td>
+                <td class="actions">
+                  <button class="btn btn-secondary btn-sm edit-btn" data-id="${item.id}">Edit</button>
+                  <button class="btn btn-danger btn-sm del-btn" data-id="${item.id}">Delete</button>
+                </td>
+              </tr>
+            `}).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Settings -->
+      <div class="form-card">
+        <h3>Settings</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Sale Title</label>
+            <input type="text" id="sTitle" value="${escHtml(data.settings.saleTitle || '')}">
+          </div>
+          <div class="form-group">
+            <label>WhatsApp Number (with country code, e.g. 6281234567890)</label>
+            <input type="text" id="sWhatsapp" value="${escHtml(data.settings.whatsappNumber || '')}" placeholder="6281234567890">
+          </div>
+          <div class="form-group">
+            <label>New Admin Password (leave blank to keep current)</label>
+            <input type="password" id="sPassword" placeholder="••••••••">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+        </div>
+      </div>
+
+      <!-- Import / Export -->
+      <div class="form-card">
+        <h3>Import / Export</h3>
+        <div class="io-section">
+          <button class="btn btn-secondary" id="exportBtn">Export JSON</button>
+          <button class="btn btn-secondary" id="importBtn">Import JSON</button>
+          <input type="file" id="importFile" accept=".json" class="hidden">
+        </div>
+      </div>
+
+      <div class="footer">
+        <button class="btn btn-secondary" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+  `;
+
+  // Sold toggle
+  const soldToggle = document.getElementById('fSold');
+  soldToggle.addEventListener('click', () => {
+    soldToggle.classList.toggle('on');
+    document.getElementById('fSoldLabel').textContent = soldToggle.classList.contains('on') ? 'Yes' : 'No';
+  });
+
+  // Save item
+  document.getElementById('saveItemBtn').addEventListener('click', async () => {
+    const name = document.getElementById('fName').value.trim();
+    const price = Number(document.getElementById('fPrice').value) || 0;
+    const category = document.getElementById('fCategory').value;
+    const condition = document.getElementById('fCondition').value;
+    const description = document.getElementById('fDesc').value.trim();
+    let imageUrl = document.getElementById('fImage').value.trim();
+    const sold = document.getElementById('fSold').classList.contains('on');
+    const imageFile = document.getElementById('fImageFile').files[0];
+
+    if (!name) { alert('Please enter an item name'); return; }
+
+    // Upload image file if selected
+    if (imageFile) {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      const uploadRes = await fetch('/api/admin/upload', { method: 'POST', body: formData });
+      const uploadData = await uploadRes.json();
+      if (uploadData.error) { alert(uploadData.error); return; }
+      imageUrl = uploadData.url;
+    }
+
+    const body = { name, price, category, condition, description, imageUrl, sold };
+
+    if (editingItemId) {
+      await api(`/api/admin/items/${editingItemId}`, { method: 'PUT', body });
+      editingItemId = null;
+    } else {
+      await api('/api/admin/items', { method: 'POST', body });
+    }
+    await render();
+  });
+
+  // Cancel edit
+  const cancelBtn = document.getElementById('cancelEditBtn');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => { editingItemId = null; render(); });
+  }
+
+  // Edit / Delete
+  document.getElementById('itemsTableBody').addEventListener('click', async e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    if (btn.classList.contains('edit-btn')) {
+      editingItemId = id;
+      await render();
+      document.getElementById('itemForm').scrollIntoView({ behavior: 'smooth' });
+    }
+    if (btn.classList.contains('del-btn')) {
+      if (!confirm('Delete this item?')) return;
+      await api(`/api/admin/items/${id}`, { method: 'DELETE' });
+      await render();
+    }
+  });
+
+  // Save settings
+  document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
+    const body = {
+      saleTitle: document.getElementById('sTitle').value.trim() || "Kuki's Garage Sale",
+      whatsappNumber: document.getElementById('sWhatsapp').value.trim(),
+      password: document.getElementById('sPassword').value || undefined,
+    };
+    await api('/api/admin/settings', { method: 'PUT', body });
+    alert('Settings saved!');
+    await render();
+  });
+
+  // Export
+  document.getElementById('exportBtn').addEventListener('click', async () => {
+    const data = await api('/api/admin/export');
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'kukigarage-backup.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Import
+  document.getElementById('importBtn').addEventListener('click', () => {
+    document.getElementById('importFile').click();
+  });
+  document.getElementById('importFile').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (!imported.items || !imported.settings) throw new Error('Invalid format');
+        if (!confirm(`Import ${imported.items.length} items? This will replace all current data.`)) return;
+        await api('/api/admin/import', { method: 'POST', body: imported });
+        await render();
+      } catch (err) {
+        alert('Invalid JSON file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  // Logout
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await api('/api/auth/logout', { method: 'POST' });
+    navigate('#/');
+  });
+}
+
+// ─── Init ───
+window.addEventListener('hashchange', () => { editingItemId = null; render(); });
+render();
+</script>
+</body>
+</html>
