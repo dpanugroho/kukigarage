@@ -5,7 +5,10 @@ import { readFileSync, existsSync, mkdirSync } from "fs";
 import { join, extname } from "path";
 
 const app = new Hono();
-const DB_PATH = process.env.DB_PATH || "kukigarage.db";
+const DB_PATH = process.env.DB_PATH || (process.env.RAILWAY_ENVIRONMENT ? "/data/kukigarage.db" : "kukigarage.db");
+// Ensure parent directory exists
+const dbDir = DB_PATH.substring(0, DB_PATH.lastIndexOf("/"));
+if (dbDir && !existsSync(dbDir)) mkdirSync(dbDir, { recursive: true });
 const db = new Database(DB_PATH);
 const UPLOADS_DIR = process.env.UPLOADS_DIR || join(import.meta.dir, "uploads");
 if (!existsSync(UPLOADS_DIR)) mkdirSync(UPLOADS_DIR);
