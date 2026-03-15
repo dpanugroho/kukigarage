@@ -994,15 +994,19 @@ async function renderPublic() {
   // Interest button
   document.getElementById('itemGrid').addEventListener('click', async e => {
     const btn = e.target.closest('.interest-btn');
-    if (!btn) return;
+    if (!btn || btn.disabled) return;
     const itemId = btn.dataset.itemId;
     btn.disabled = true;
     btn.textContent = '🐾 Thanks!';
     await api(`/api/interest/${itemId}`, { method: 'POST' });
-    // Update count in place
+    // Update count display in place without re-rendering
     const item = items.find(i => i.id === itemId);
-    if (item) item.interestCount = (item.interestCount || 0) + 1;
-    renderItems();
+    if (item) {
+      item.interestCount = (item.interestCount || 0) + 1;
+      const card = btn.closest('.card');
+      const countsEl = card.querySelector('.card-counts');
+      if (countsEl) countsEl.textContent = `👀 ${item.viewCount || 0} views · 🐾 ${item.interestCount} interested`;
+    }
   });
 
   renderItems();
