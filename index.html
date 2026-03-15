@@ -128,6 +128,40 @@ a:hover { color: var(--primary-dark); }
   .public-stats { flex-direction: column; gap: 6px; }
 }
 
+/* Kuki's Story */
+.kuki-story {
+  background: var(--card-bg);
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin: 16px 0 4px;
+  position: relative;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--text);
+}
+.kuki-story::before {
+  content: '🐱';
+  position: absolute;
+  top: -14px;
+  left: 20px;
+  font-size: 1.4rem;
+  background: var(--bg);
+  padding: 0 6px;
+}
+.kuki-story .kuki-name {
+  font-family: var(--font-handwritten);
+  font-size: 1.3rem;
+  color: var(--primary);
+}
+.kuki-story .kuki-sig {
+  text-align: right;
+  font-family: var(--font-handwritten);
+  font-size: 1.2rem;
+  color: var(--primary);
+  margin-top: 6px;
+}
+
 /* Filter & Search Bar */
 .toolbar {
   display: flex;
@@ -695,12 +729,19 @@ async function renderPublic() {
             <h1>${title}</h1>
             <p>Kuki must not hoard! Kuki must let go of things!</p>
           </div>
-          <a href="#/admin" class="admin-link">Admin</a>
         </div>
       </div>
     </div>
     <div class="container">
       <div class="cat-divider">🐾 🐾 🐾</div>
+      <div class="kuki-story">
+        Henlo hoomans! I'm <span class="kuki-name">Kuki</span>, a Siberian cat with impeccable taste and very long whiskers.
+        My pawrent has been unconsciously hoarding things over the years and frankly, it's getting ridiculous.
+        A cat needs space to do ZOOMIES! So I've decided to take matters into my own paws
+        and open this garage sale. Your clutter is my runway. Please give these items a new home
+        so I can have mine back. 🐾
+        <div class="kuki-sig">— Kuki, Chief Decluttering Officer 🐾</div>
+      </div>
       <div class="public-stats">
         <div class="public-stat"><strong>${items.filter(i => i.sold).length}</strong> items handed over</div>
         <div class="public-stat-dot"></div>
