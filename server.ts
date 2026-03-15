@@ -5,8 +5,9 @@ import { readFileSync, existsSync, mkdirSync } from "fs";
 import { join, extname } from "path";
 
 const app = new Hono();
-const db = new Database("kukigarage.db");
-const UPLOADS_DIR = join(import.meta.dir, "uploads");
+const DB_PATH = process.env.DB_PATH || "kukigarage.db";
+const db = new Database(DB_PATH);
+const UPLOADS_DIR = process.env.UPLOADS_DIR || join(import.meta.dir, "uploads");
 if (!existsSync(UPLOADS_DIR)) mkdirSync(UPLOADS_DIR);
 
 const MIME_TYPES: Record<string, string> = {
@@ -326,7 +327,7 @@ app.get("*", (c) => {
 });
 
 export default {
-  port: 3000,
+  port: process.env.PORT || 3000,
   fetch: app.fetch,
 };
 
